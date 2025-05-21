@@ -32,8 +32,13 @@ def planck_law(wavelength, temperature):
     返回:
         float or numpy.ndarray: 给定波长和温度下的辐射强度 (W/(m²·m))
     """
+    # 避免指数溢出
+    exponent = H * C / (wavelength * K_B * temperature)
+    if isinstance(wavelength, np.ndarray):
+        denominator = np.where(exponent > 700, np.inf, np.exp(exponent) - 1)
+    else:
+        denominator = np.inf if exponent > 700 else np.exp(exponent) - 1
     numerator = 2 * H * C**2 / (wavelength**5)
-    denominator = np.exp(H * C / (wavelength * K_B * temperature)) - 1
     intensity = numerator / denominator
     return intensity
 
@@ -48,8 +53,8 @@ def calculate_visible_power_ratio(temperature):
     返回:
         float: 可见光效率（可见光功率/总功率）
     """
-    # 总辐射功率积分范围从 0 到正无穷，这里用一个足够大的值近似
-    total_power, _ = integrate.quad(planck_law, 0, 1e-3, args=(temperature,))
+    # 调整总辐射功率积分范围，避免不必要的计算
+    total_power, _ = integrate.quad(planck_law, 1e-9, 1e-3, args=(temperature,))
     visible_power, _ = integrate.quad(
         planck_law, VISIBLE_LIGHT_MIN, VISIBLE_LIGHT_MAX, args=(temperature,))
     visible_power_ratio = visible_power / total_power

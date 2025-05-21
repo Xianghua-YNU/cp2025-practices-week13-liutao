@@ -24,64 +24,80 @@ VISIBLE_LIGHT_MAX = 780e-9  # 780 nm
 def planck_law(wavelength, temperature):
     """
     计算普朗克黑体辐射公式
-    
+
     参数:
         wavelength (float or numpy.ndarray): 波长，单位为米
         temperature (float): 温度，单位为开尔文
-    
+
     返回:
         float or numpy.ndarray: 给定波长和温度下的辐射强度 (W/(m²·m))
     """
-    # TODO: 实现普朗克黑体辐射公式
-    # [STUDENT_CODE_HERE]
-    raise NotImplementedError("请在 {} 中实现此函数".format(__file__))
+    numerator = 2 * H * C**2 / (wavelength**5)
+    denominator = np.exp(H * C / (wavelength * K_B * temperature)) - 1
+    intensity = numerator / denominator
     return intensity
 
 
 def calculate_visible_power_ratio(temperature):
     """
     计算给定温度下可见光功率与总辐射功率的比值
-    
+
     参数:
         temperature (float): 温度，单位为开尔文
-    
+
     返回:
         float: 可见光效率（可见光功率/总功率）
     """
-    # TODO: 使用数值积分计算可见光效率
-    # 提示: 使用scipy.integrate.quad进行积分
-    # [STUDENT_CODE_HERE]
-    raise NotImplementedError("请在 {} 中实现此函数".format(__file__))
+    # 总辐射功率积分范围从 0 到正无穷，这里用一个足够大的值近似
+    total_power, _ = integrate.quad(planck_law, 0, 1e-3, args=(temperature,))
+    visible_power, _ = integrate.quad(
+        planck_law, VISIBLE_LIGHT_MIN, VISIBLE_LIGHT_MAX, args=(temperature,))
+    visible_power_ratio = visible_power / total_power
     return visible_power_ratio
 
 
 def plot_efficiency_vs_temperature(temp_range):
     """
     绘制效率-温度关系曲线
-    
+
     参数:
         temp_range (numpy.ndarray): 温度范围，单位为开尔文
-    
+
     返回:
-        tuple: (matplotlib.figure.Figure, numpy.ndarray, numpy.ndarray) 图形对象、温度数组、效率数组
+        tuple: (matplotlib.figure.Figure, numpy.ndarray, numpy.ndarray)
+        图形对象、温度数组、效率数组
     """
-    # TODO: 计算并绘制效率-温度曲线
-    # [STUDENT_CODE_HERE]
-    raise NotImplementedError("请在 {} 中实现此函数".format(__file__))
+    efficiencies = []
+    for temp in temp_range:
+        efficiency = calculate_visible_power_ratio(temp)
+        efficiencies.append(efficiency)
+    efficiencies = np.array(efficiencies)
+
+    fig = plt.figure()
+    plt.plot(temp_range, efficiencies)
+    plt.xlabel('Temperature (K)')
+    plt.ylabel('Visible Light Efficiency')
+    plt.title('Incandescent Lamp Efficiency vs Temperature')
+    plt.grid(True)
+
     return fig, temp_range, efficiencies
 
 
 def find_optimal_temperature():
     """
     寻找使白炽灯效率最大的最优温度
-    
+
     返回:
         tuple: (float, float) 最优温度和对应的效率
     """
-    # TODO: 使用scipy.optimize.minimize_scalar寻找最优温度
-    # 提示: 设置bounds=(1000,10000)和options={'xatol':1.0}
-    # [STUDENT_CODE_HERE]
-    raise NotImplementedError("请在 {} 中实现此函数".format(__file__))
+    def negative_efficiency(temperature):
+        return -calculate_visible_power_ratio(temperature)
+
+    result = minimize_scalar(negative_efficiency, bounds=(
+        1000, 10000), options={'xatol': 1.0})
+    optimal_temp = result.x
+    optimal_efficiency = -result.fun
+
     return optimal_temp, optimal_efficiency
 
 
@@ -94,24 +110,26 @@ def main():
     fig_efficiency, temps, effs = plot_efficiency_vs_temperature(temp_range)
     plt.savefig('efficiency_vs_temperature.png', dpi=300)
     plt.show()
-    
+
     # 计算最优温度
     optimal_temp, optimal_efficiency = find_optimal_temperature()
     print(f"\n最优温度: {optimal_temp:.1f} K")
     print(f"最大效率: {optimal_efficiency:.4f} ({optimal_efficiency*100:.2f}%)")
-    
+
     # 与实际白炽灯温度比较
     actual_temp = 2700
     actual_efficiency = calculate_visible_power_ratio(actual_temp)
     print(f"\n实际灯丝温度: {actual_temp} K")
     print(f"实际效率: {actual_efficiency:.4f} ({actual_efficiency*100:.2f}%)")
     print(f"效率差异: {(optimal_efficiency - actual_efficiency)*100:.2f}%")
-    
+
     # 标记最优和实际温度点
     plt.figure(figsize=(10, 6))
     plt.plot(temps, effs, 'b-')
-    plt.plot(optimal_temp, optimal_efficiency, 'ro', markersize=8, label=f'Optimal: {optimal_temp:.1f} K')
-    plt.plot(actual_temp, actual_efficiency, 'go', markersize=8, label=f'Actual: {actual_temp} K')
+    plt.plot(optimal_temp, optimal_efficiency, 'ro',
+             markersize=8, label=f'Optimal: {optimal_temp:.1f} K')
+    plt.plot(actual_temp, actual_efficiency, 'go',
+             markersize=8, label=f'Actual: {actual_temp} K')
     plt.xlabel('Temperature (K)')
     plt.ylabel('Visible Light Efficiency')
     plt.title('Incandescent Lamp Efficiency vs Temperature')

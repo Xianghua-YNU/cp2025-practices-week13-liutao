@@ -58,25 +58,29 @@ def find_energy_level_bisection(n, V, w, m, precision=0.001, E_min=0.001, E_max=
     # [STUDENT_CODE_HERE]
     # 提示: 需要考虑能级的奇偶性，偶数能级使用偶宇称方程，奇数能级使用奇宇称方程
     if E_max is None:
-        E_max = V - precision  # 防止除零错误
+        E_max = V - precision  # 防止分母为零
     parity = 'even' if n % 2 == 0 else 'odd'
-    m_level = (n // 2) + 1  # 确定解的序数
+    m_level = (n // 2) + 1  # 确定解的序数（偶宇称和奇宇称各自独立计数）
 
+    # 定义当前宇称对应的方程
     def f(E):
         E_J = E * EV_TO_JOULE
         k = np.sqrt((w**2 * m * E_J) / (2 * HBAR**2))
         if parity == 'even':
+            # 偶宇称方程：tan(k) = sqrt((V-E)/E)
             right = np.sqrt((V - E) / E)
         else:
+            # 奇宇称方程：tan(k) = -sqrt(E/(V-E))
             right = -np.sqrt(E / (V - E))
         return np.tan(k) - right
 
-    # 扫描能量区间寻找符号变化
-    step = 0.001
+    # 扫描能量区间，仅处理当前宇称的方程
+    step = 0.001  # 扫描步长（可根据需要调整）
     E_scan = np.arange(E_min, E_max, step)
-    intervals = []
     if len(E_scan) == 0:
-        raise ValueError("E_scan is empty. Check parameters.")
+        raise ValueError("能量扫描区间为空，请检查参数设置。")
+
+    intervals = []
     prev_f = f(E_scan[0])
     for i in range(1, len(E_scan)):
         current_f = f(E_scan[i])
@@ -84,12 +88,15 @@ def find_energy_level_bisection(n, V, w, m, precision=0.001, E_min=0.001, E_max=
             intervals.append((E_scan[i-1], E_scan[i]))
         prev_f = current_f
 
+    # 验证是否找到足够的根区间
     if len(intervals) < m_level:
-        raise ValueError(f"Not enough intervals for n={n}. Needed {m_level}, found {len(intervals)}")
+        raise ValueError(f"需要至少 {m_level} 个{parity}宇称区间，但仅找到 {len(intervals)} 个。请减小步长或扩大能量范围。")
 
+    # 选择目标区间进行二分法
     E_low, E_high = intervals[m_level - 1]
-    # 应用二分法
-    for _ in range(100):  # 防止无限循环
+
+    # 执行二分法迭代
+    for _ in range(100):  # 最多迭代100次，防止无限循环
         E_mid = (E_low + E_high) / 2
         if E_high - E_low <= precision:
             break
@@ -98,8 +105,9 @@ def find_energy_level_bisection(n, V, w, m, precision=0.001, E_min=0.001, E_max=
             E_high = E_mid
         else:
             E_low = E_mid
-    return round((E_low + E_high) / 2, 3)  # 保留三位小数
 
+    # 返回保留三位小数的结果
+    return round((E_low + E_high) / 2, 3)
 
 def main():
     """

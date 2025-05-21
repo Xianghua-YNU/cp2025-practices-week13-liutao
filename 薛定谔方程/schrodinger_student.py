@@ -57,7 +57,6 @@ def find_energy_level_bisection(n, V, w, m, precision=0.001, E_min=0.001, E_max=
     # TODO: 实现二分法求解能级的代码 (约25行代码)
     # [STUDENT_CODE_HERE]
     # 提示: 需要考虑能级的奇偶性，偶数能级使用偶宇称方程，奇数能级使用奇宇称方程
-    def find_energy_level_bisection(n, V, w, m, precision=0.001, E_min=0.001, E_max=None):
     if E_max is None:
         E_max = V - precision  # 确保 E < V
     

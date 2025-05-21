@@ -109,7 +109,7 @@ def find_energy_level_bisection(n, V, w, m, precision=0.001, E_min=0.001, E_max=
             found = True
             break
         else:
-            delta *= 2  # 扩大搜索范围
+            delta *= 3  # 扩大搜索范围
     
     if not found:
         raise ValueError(f"无法找到能级{n}的有效区间，请检查参数或扩展搜索范围。")

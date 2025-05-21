@@ -64,8 +64,10 @@ def find_energy_level_bisection(n, V, w, m, precision=0.001, E_min=0.001, E_max=
     parity = 'even' if n % 2 == 0 else 'odd'
     m_level = (n // 2) + 1  # 奇偶宇称各自独立计数
 
-    # 定义当前宇称对应的方程
+    # 定义当前宇称对应的方程（添加数值保护）
     def f(E):
+        if E <= 0 or E >= V:
+            return np.inf  # 标记无效能量值
         E_J = E * EV_TO_JOULE
         k = np.sqrt((w**2 * m * E_J) / (2 * HBAR**2))
         if parity == 'even':
@@ -74,46 +76,45 @@ def find_energy_level_bisection(n, V, w, m, precision=0.001, E_min=0.001, E_max=
             right = -np.sqrt(E / (V - E)) # 奇宇称方程
         return np.tan(k) - right
 
-    # 计算最大允许的k值（对应E=V）
+    # 计算理论k值并动态调整搜索区间
     k_max = np.sqrt((V * EV_TO_JOULE) * w**2 * m / (2 * HBAR**2))
     
-    # 根据宇称和能级序数确定k的理论中心值
+    # 修正k_center的初始值（针对n=0的特殊处理）
     if parity == 'even':
-        k_center = (2 * m_level - 1) * np.pi / 2  # 偶宇称解位于tan(k)的奇点附近
+        k_center = (2 * m_level - 1) * np.pi / 2
+        delta = 0.5 * np.pi  # 扩大初始搜索范围
     else:
-        k_center = m_level * np.pi                 # 奇宇称解位于tan(k)的零点附近
-
-    # 动态调整搜索区间
-    delta = 0.5  # 初始搜索范围
-    max_expand = 5  # 最大扩展次数
-    found = False
+        k_center = m_level * np.pi
+        delta = 0.5
     
-    for _ in range(max_expand):
-        # 确定k的搜索范围
+    # 动态调整搜索区间（最多扩展5次）
+    max_expand = 5
+    found = False
+    for expand in range(max_expand):
         k_low = max(k_center - delta, 0)
         k_high = min(k_center + delta, k_max)
         
-        # 转换为能量区间
+        # 转换为能量区间并确保 E < V
         E_low = (k_low**2 * 2 * HBAR**2) / (w**2 * m) / EV_TO_JOULE
         E_high = (k_high**2 * 2 * HBAR**2) / (w**2 * m) / EV_TO_JOULE
-        E_high = min(E_high, V - precision)  # 确保不超过势阱高度
+        E_high = min(E_high, V - precision)
         
         # 检查符号变化
         try:
             f_low = f(E_low)
             f_high = f(E_high)
         except:
-            break  # 出现计算错误（如负数开根号）
-            
+            break
+        
         if np.sign(f_low) != np.sign(f_high):
             found = True
             break
         else:
-            delta *= 3  # 扩大搜索范围
+            delta *= 2  # 扩大搜索范围
     
     if not found:
-        raise ValueError(f"无法找到能级{n}的有效区间，请检查参数或扩展搜索范围。")
-
+        raise ValueError(f"无法找到能级{n}的有效区间，请检查参数。")
+    
     # 执行二分法
     for _ in range(100):
         E_mid = (E_low + E_high) / 2

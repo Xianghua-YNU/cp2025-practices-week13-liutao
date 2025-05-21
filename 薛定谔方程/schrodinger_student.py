@@ -75,7 +75,7 @@ def find_energy_level_bisection(n, V, w, m, precision=0.001, E_min=0.001, E_max=
         return np.tan(k) - right
 
     # 扫描能量区间，仅处理当前宇称的方程
-    step = 0.001  # 扫描步长（可根据需要调整）
+    step = 0.0001  # 扫描步长（可根据需要调整）
     E_scan = np.arange(E_min, E_max, step)
     if len(E_scan) == 0:
         raise ValueError("能量扫描区间为空，请检查参数设置。")
